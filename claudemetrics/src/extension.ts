@@ -229,7 +229,7 @@ function handleNewLogFile(filePath: string, email: string, githubUsername: strin
                             
                             // Track acceptance/decline for all code-related tools
                             if (toolInfo.tool.name === 'Edit' || toolInfo.tool.name === 'MultiEdit' || toolInfo.tool.name === 'Write') {
-                                if (isSuccessful) {
+                                if (!result.is_error) {
                                     suggestionsAccepted++;
                                     
                                     // Only count Edit/MultiEdit as "edited" lines
@@ -244,7 +244,7 @@ function handleNewLogFile(filePath: string, email: string, githubUsername: strin
                                         timestamp: logEntry.timestamp,
                                         filePath: toolInfo.tool.input.file_path || 'N/A'
                                     });
-                                } else {
+                                } else if (result.is_error && rejectedToolInfo(result)) {
                                     suggestionsDeclined++;
                                     
                                     console.log(`AI Code Action [${toolInfo.logIndex + 1}]:`, {
@@ -279,6 +279,15 @@ function handleNewLogFile(filePath: string, email: string, githubUsername: strin
         
     } catch (err) {
         vscode.window.showErrorMessage("Could not parse Claude file");
+    }
+
+    function rejectedToolInfo(result: any): boolean {
+        if (result.error_message?.includes("Tool failed") || result.error_message?.includes("timeout")) {
+            return false; // not a user rejection, just a failure
+          }
+        
+          // You can expand this based on real examples you see in the logs
+          return true; // assume it's a rejection if not filtered out
     }
 }
 
